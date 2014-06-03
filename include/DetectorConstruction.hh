@@ -5,6 +5,7 @@
 #include "globals.hh"
 
 class G4VPhysicalVolume;
+class G4VSensitiveDetector;
 
 class DetectorConstruction : public G4VUserDetectorConstruction
 {
@@ -13,9 +14,11 @@ public:
   virtual ~DetectorConstruction();
 
   virtual G4VPhysicalVolume* Construct();
-
+  virtual void ConstructSDandField();
+  
 private:
-  // anything to go here?
+
+  G4LogicalVolume* _tpcLArLogical;
 
 };
 

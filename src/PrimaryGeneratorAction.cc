@@ -5,6 +5,7 @@
 #include "G4ParticleTable.hh"
 #include "G4ParticleDefinition.hh"
 #include "G4SystemOfUnits.hh"
+#include "G4PhysicalConstants.hh"
 #include "Randomize.hh"
 
 
@@ -23,7 +24,8 @@ PrimaryGeneratorAction::PrimaryGeneratorAction():
   G4ParticleDefinition* particle
     = particleTable->FindParticle(particleName="gamma");
   fParticleGun->SetParticleDefinition(particle);
-  fParticleGun->SetParticleMomentumDirection(G4ThreeVector(0.,0.,1.));
+  fParticleGun->SetParticlePosition(G4ThreeVector(0,0,-10*cm));
+  fParticleGun->SetParticleMomentumDirection(G4ThreeVector(0,0,1));
   fParticleGun->SetParticleEnergy(1.*MeV);
 }
 
@@ -35,8 +37,10 @@ PrimaryGeneratorAction::~PrimaryGeneratorAction()
 void PrimaryGeneratorAction::GeneratePrimaries(G4Event* event)
 {
   
-  //G4double angle = (G4UniformRand()-0.5);
-  //fParticleGun->SetParticleMomentumDirection(G4ThreeVector(std::sin(angle),0.,
-  //                                                         std::cos(angle)));
+  G4double theta = G4UniformRand()*2.*pi;
+  G4double u = G4UniformRand()*2.-1;
+  fParticleGun->SetParticleMomentumDirection(G4ThreeVector(std::sqrt(1.-u*u)*std::cos(theta),
+                                                           std::sqrt(1.-u*u)*std::sin(theta),
+                                                           u) );
   fParticleGun->GeneratePrimaryVertex(event);
 }

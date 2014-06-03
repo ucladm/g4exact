@@ -18,7 +18,8 @@
 #endif
 
 #include "G4UImanager.hh"
-#include "QBBC.hh"
+//#include "Shielding.hh"
+#include "QGSP_BIC.hh"
 
 #ifdef G4VIS_USE
 #include "G4VisExecutive.hh"
@@ -27,6 +28,8 @@
 #ifdef G4UI_USE
 #include "G4UIExecutive.hh"
 #endif
+
+#include "G4ScoringManager.hh"
 
 #include "Randomize.hh"
 
@@ -43,6 +46,8 @@ int main(int argc,char** argv)
   //
 #ifdef G4MULTITHREADED
   G4MTRunManager* runManager = new G4MTRunManager;
+  runManager->SetNumberOfThreads(G4Threading::G4GetNumberOfCores());
+  //runManager->SetNumberOfThreads(1);
 #else
   G4RunManager* runManager = new G4RunManager;
 #endif
@@ -53,7 +58,7 @@ int main(int argc,char** argv)
   runManager->SetUserInitialization(new DetectorConstruction());
 
   // Physics list
-  G4VModularPhysicsList* physicsList = new QBBC;
+  G4VModularPhysicsList* physicsList = new QGSP_BIC; //QBBC;
   physicsList->SetVerboseLevel(1);
   runManager->SetUserInitialization(physicsList);
     
@@ -72,6 +77,12 @@ int main(int argc,char** argv)
   visManager->Initialize();
 #endif
 
+
+  // Activate UI-command base scorer 
+  G4ScoringManager * scManager = G4ScoringManager::GetScoringManager(); 
+  scManager->SetVerboseLevel(1);
+
+  
   // Get the pointer to the User Interface manager
   G4UImanager* UImanager = G4UImanager::GetUIpointer();
 
@@ -94,6 +105,8 @@ int main(int argc,char** argv)
     delete ui;
 #endif
   }
+
+
 
   // Job termination
   // Free the store: user actions, physics_list and detector_description are

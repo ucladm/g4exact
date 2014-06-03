@@ -1,5 +1,5 @@
 #include "DetectorConstruction.hh"
-
+#include "TpcLArSD.hh"
 
 #include "G4RunManager.hh"
 #include "G4NistManager.hh"
@@ -7,14 +7,19 @@
 #include "G4Tubs.hh"
 #include "G4UnionSolid.hh"
 #include "G4LogicalVolume.hh"
+#include "G4VPhysicalVolume.hh"
 #include "G4PVPlacement.hh"
 #include "G4SystemOfUnits.hh"
+#include "G4SDManager.hh"
+#include "G4VSensitiveDetector.hh"
+#include "G4ios.hh"
 
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 DetectorConstruction::DetectorConstruction():
-  G4VUserDetectorConstruction()
+  G4VUserDetectorConstruction(),
+  _tpcLArLogical(0)
 { }
 
 
@@ -35,7 +40,8 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
   ///////////////////////////////////////////////////////////////////
 
   G4Material* air = nist->FindOrBuildMaterial("G4_AIR");
-  G4Material* LAr = nist->FindOrBuildMaterial("G4_lAr");
+  G4Material* lAr = nist->FindOrBuildMaterial("G4_lAr");
+  G4Material* gAr = nist->FindOrBuildMaterial("G4_Ar"); // Should build custom GAr with higher density
   G4Material* teflon = nist->FindOrBuildMaterial("G4_TEFLON");
 
   
@@ -49,14 +55,17 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 
   // LAr bath
   G4double lar_bath_diam = 20*cm;
-  G4double lar_bath_height = 75*cm;
+  G4double lar_bath_height = 80*cm;
 
   // TPC
-  G4double tpc_id = 7.6*cm;
-  G4double tpc_od = 9.9*cm;
-  G4double tpc_height = 9.9*cm;
-  G4double tpc_top_cap_height = 2.54*cm;
-  G4double tpc_bot_cap_height = 2.54*cm;
+  G4double tpc_diam = 7.6*cm;
+  G4double tpc_lAr_height = 7.6*cm;
+  G4double tpc_gAr_height = 0.8*cm;
+
+  // Teflon body
+  G4double teflon_diam = 9.9*cm;
+  G4double teflon_height = 13.5*cm;
+
 
   ///////////////////////////////////////////////////////////////////
   ///////////////////////////  GEOMETRIES ///////////////////////////
@@ -78,38 +87,64 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
                  0., 0.5*lar_bath_diam, 0.5*lar_bath_height,
                  0*deg, 360*deg);
   G4LogicalVolume* LArBathLogical
-    = new G4LogicalVolume(LArBathSolid, LAr, "LArBathLogical");
+    = new G4LogicalVolume(LArBathSolid, lAr, "LArBathLogical");
   new G4PVPlacement(0, G4ThreeVector(0,0,-0.5*(world_height-lar_bath_height)),
                     LArBathLogical, "LArBathPhysical", worldLogical,
                     false, 0, checkOverlaps);
-  
-  // TPC
-  // composed of union of tube with end caps
-  G4VSolid* tpcTubeSolid
-    = new G4Tubs("tpcTubeSolid",
-                 0.5*tpc_id, 0.5*tpc_od, 0.5*tpc_height,
+
+  // Teflon body
+  G4VSolid* teflonSolid
+    = new G4Tubs("teflonSolid",
+                 0, 0.5*teflon_diam, 0.5*teflon_height,
                  0*deg, 360*deg);
-  G4VSolid* tpcTopSolid
-    = new G4Tubs("tpcTopSolid",
-                 0., 0.5*tpc_od, 0.5*tpc_top_cap_height,
-                 0*deg, 360*deg);
-  G4VSolid* tpcBotSolid
-    = new G4Tubs("tpcBotSolid",
-                 0., 0.5*tpc_od, 0.5*tpc_bot_cap_height,
-                 0*deg, 360*deg);
-  G4UnionSolid* tpcUnion1Solid
-    = new G4UnionSolid("Tube+Top", tpcTubeSolid, tpcTopSolid,
-                       0, G4ThreeVector(0, 0, 0.5*(tpc_height+tpc_top_cap_height)) );
-  G4UnionSolid* tpcUnion2Solid
-    = new G4UnionSolid("Tube+Top+Bot", tpcUnion1Solid, tpcBotSolid,
-                       0, G4ThreeVector(0, 0, -0.5*(tpc_height+tpc_bot_cap_height)) );
-  G4LogicalVolume* tpcLogical
-    = new G4LogicalVolume(tpcUnion2Solid, teflon, "tpcLogical");
+  G4LogicalVolume* teflonLogical
+    = new G4LogicalVolume(teflonSolid, teflon, "teflonLogical");
   new G4PVPlacement(0, G4ThreeVector(),
-                    tpcLogical, "tpcPhysical", LArBathLogical,
+                    teflonLogical, "teflonPhysical", LArBathLogical,
                     false, 0, checkOverlaps);
+
+  
+  // TPC - LAr
+  G4VSolid* tpcLArSolid
+    = new G4Tubs("tpcLArSolid",
+                 0, 0.5*tpc_diam, 0.5*tpc_lAr_height,
+                 0*deg, 360*deg);
+  _tpcLArLogical
+    = new G4LogicalVolume(tpcLArSolid, lAr, "tpcLArLogical");
+  new G4PVPlacement(0, G4ThreeVector(0, 0, -0.5*tpc_gAr_height),
+                    _tpcLArLogical, "tpcLArPhysical", teflonLogical,
+                    false, 0, checkOverlaps);
+
+  
+  // TPC - GAr; has same mother as LAr
+  G4VSolid* tpcGArSolid
+    = new G4Tubs("tpcGArSolid",
+                 0, 0.5*tpc_diam, 0.5*tpc_gAr_height,
+                 0*deg, 360*deg);
+  G4LogicalVolume* tpcGArLogical
+    = new G4LogicalVolume(tpcGArSolid, gAr, "tpcGArLogical");
+  new G4PVPlacement(0, G4ThreeVector(0, 0, 0.5*tpc_lAr_height),
+                    tpcGArLogical, "tpcGArPhysical", teflonLogical,
+                    false, 0, checkOverlaps);
+  
   
   // must return world physical volume
   return worldPhysical;
+  
+}
+
+
+void DetectorConstruction::ConstructSDandField()
+{
+  
+  // sensitive detectors -----------------------------------------------------
+  G4SDManager* SDman = G4SDManager::GetSDMpointer();
+  G4String SDname;
+  
+  G4VSensitiveDetector* tpcLAr
+    = new TpcLArSD(SDname="/TpcLArSD");
+  SDman->AddNewDetector(tpcLAr);
+  _tpcLArLogical->SetSensitiveDetector(tpcLAr);
+  
   
 }

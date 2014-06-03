@@ -1,0 +1,9 @@
+# macro file for tpcsim
+
+# run in batch, without graphics:
+# $ ./tpcsim scoring.mac
+
+/run/verbose 1
+/run/printProgress 0
+#/analysis/setFileName tpcsim_test
+/run/beamOn 10000

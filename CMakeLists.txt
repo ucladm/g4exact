@@ -22,13 +22,13 @@ endif()
 # Setup include directory for this project
 #
 include(${Geant4_USE_FILE})
-include_directories(${PROJECT_SOURCE_DIR}/include)
-
 
 #----------------------------------------------------------------------------
 # Locate sources and headers for this project
 # NB: headers are included so they will show up in IDEs
 #
+include_directories(${PROJECT_SOURCE_DIR}/include
+                    ${Geant4_INCLUDE_DIR})
 file(GLOB sources ${PROJECT_SOURCE_DIR}/src/*.cc)
 file(GLOB headers ${PROJECT_SOURCE_DIR}/include/*.hh)
 
@@ -47,6 +47,8 @@ set(TPCSIM_SCRIPTS
   init.mac
   init_vis.mac
   vis.mac
+  scoring.mac
+  run.mac
   )
 
 foreach(_script ${TPCSIM_SCRIPTS})
