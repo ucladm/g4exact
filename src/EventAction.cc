@@ -1,6 +1,6 @@
 #include "EventAction.hh"
 #include "Analysis.hh"
-#include "tpcLArHit.hh"
+#include "TpcLArHit.hh"
 
 #include "G4Event.hh"
 #include "G4RunManager.hh"
